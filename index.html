@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mmm, autism</title>
+  <style>
+    html {
+      height: 100%;
+    }
+
+    html.wait * {
+      cursor: wait !important;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f8f9fa;
+      min-height: 100vh;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      color: #555;
+      font-size: 0.9em;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 5px;
+      min: 1;
+    }
+
+    #output {
+      margin: 20px auto 0;
+      text-align: center;
+      max-width: 800px;
+    }
+    
+    #transparency {
+      width: 100%;
+    }
+
+    #generatedImage {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #ddd;
+      margin-top: 20px;
+    }
+
+    #bgImage {
+      max-width: 200px;
+    }
+
+    .links {
+      margin-top: 10px;
+    }
+
+    .image-upload {
+      margin-top: 5px;
+    }
+
+    .reset-btn {
+      margin-left: 10px;
+    }
+
+    .generate-btn {
+      padding: 5px 10px;
+    }
+
+    .pieces-count {
+      display: inline-block;
+      color: #ff7a7a;
+      font-size: 0.85em;
+      margin-top: 5px;
+    }
+
+    .color-pickers {
+      margin-left: 120px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="controls">
+    <div class="input-group">
+      <label>Pieces:</label>
+      <input type="number" id="pieces" value="500" min="1">
+    </div>
+    <div class="input-group">
+      <label>Transparency:</label>
+      <input type="range" id="transparency" min="0" max="1" step="0.01" value="0.8">
+    </div>
+    <div class="input-group">
+      <span class="pieces-count" id="piecesCount">Number of pieces (500) (100 ppi) !!!!!</span>
+    </div>
+    <br>
+    <div class="input-group">
+      <label>Image:</label>
+      <input type="file" id="bgImage" accept="image/*" class="image-upload">
+      <button class="reset-btn" onclick="resetImage()">Reset Image</button>
+    </div>
+    <button class="generate-btn" onclick="generate()">Generate</button>
+    <div class="links">
+      <a href="https://unsplash.com/s/photos/gradient" id="gradientsLink">Gradients & pics</a>
+    </div>
+  </div>
+  <div id="output"></div>
+
+  <script>
+    async function updatePiecesCount() {
+      const bgImage = document.getElementById('bgImage').files[0];
+      let count = pieces.value;
+      var ratio = 1;
+
+      if (bgImage) {
+        const img = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(bgImage);
+        });
+
+
+        ratio = img.width / img.height;
+      }
+      
+      let width = Math.sqrt(count * ratio);
+      let height = Math.floor(width / ratio);
+      width = Math.floor(width);
+      width = width - (1 - width % 2);
+      height = height - (1 - (height % 2));
+      count = width * height;
+
+      document.getElementById('piecesCount').textContent =
+        `Number of pieces (${count}) (100 ppi) !!!!!`;
+    }
+
+
+    function resetImage() {
+      document.getElementById('bgImage').value = '';
+      updatePiecesCount();
+    }
+
+    updatePiecesCount();
+
+    document.getElementById('pieces').addEventListener('input', updatePiecesCount);
+    document.getElementById('bgImage').addEventListener('change', updatePiecesCount);
+
+    async function generate() {
+      document.documentElement.classList.add('wait');
+      document.getElementById('output').innerHTML = '';
+
+      const SQUARE_SIZE = 100;
+
+      const pieces = parseInt(document.getElementById('pieces').value) || 500;
+      const tileCanvas = document.createElement('canvas');
+      const bgImage = document.getElementById('bgImage').files[0];
+
+      let count = pieces;
+      var ratio = 1;
+
+      if (bgImage) {
+        var img = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(bgImage);
+        });
+
+        ratio = img.width / img.height;
+      }
+      
+      var width = Math.sqrt(count * ratio);
+      var height = Math.floor(width / ratio);
+      width = Math.floor(width);
+      width = width - (1 - width % 2);
+      height = height - (1 - (height % 2));
+     
+      tileCanvas.width = width;
+      tileCanvas.height = height;
+
+      const tileCtx = tileCanvas.getContext('2d');
+
+      let flag = true;
+      for (let x = 0; x < tileCanvas.width; x++) {
+        for (let y = 0; y < tileCanvas.height; y++) {
+          if (flag) {
+            tileCtx.fillStyle = "black";
+          } else {
+            tileCtx.fillStyle = "white";
+          }
+          tileCtx.fillRect(x, y, 1, 1);
+          flag = !flag;
+        }
+      }
+
+      let tempCanvas = document.createElement('canvas');
+      let tempCtx = tempCanvas.getContext('2d');
+
+      if (bgImage) {
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+        tileCtx.globalAlpha = document.getElementById('transparency').value;
+        tileCtx.drawImage(tempCanvas, 0, 0, tileCanvas.width, tileCanvas.height);
+        tileCtx.globalAlpha = 1;
+      }
+
+      tempCanvas.width = tileCanvas.width * SQUARE_SIZE;
+      tempCanvas.height = tileCanvas.height * SQUARE_SIZE;
+      tempCtx.imageSmoothingEnabled = false;
+      tempCtx.drawImage(tileCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+      tileCanvas.width = tempCanvas.width;
+      tileCanvas.height = tempCanvas.height;
+      tileCtx.drawImage(tempCanvas, 0, 0);
+
+      tileCanvas.toBlob((blob) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        img.src = url;
+        img.id = 'generatedImage';
+
+        img.onload = () => {
+          document.getElementById('output').appendChild(img);
+          document.documentElement.classList.remove('wait');
+        };
+
+      }, 'image/png');
+    }
+
+    window.onload = generate;
+  </script>
+</body>
+
+</html>
